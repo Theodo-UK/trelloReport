@@ -19,6 +19,7 @@ export const getBoardLists = async (): Promise<{ data: TrelloList[] }> =>
 
 export const getListTickets = async (lists: { data: TrelloList[] }, listDescription: string) => {
   const list = lists.data.find((list) => list.name.includes(listDescription));
+  if (!list) return [];
   const trelloCards: { data: TrelloCard[] } = await axios.get(
     `https://api.trello.com/1/lists/${list?.id}/cards`,
     authParams

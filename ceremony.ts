@@ -8,17 +8,14 @@ const isEpicOrProcessLabel = (labelName: string) => !!labelName.match(/(^process
 const printData = async () => {
   const lists = await getBoardLists();
   const doneTickets = await getListTickets(lists, `Done #${sprint}`);
+  const tvTickets = await getListTickets(lists, `To Validate #${sprint}`);
+  const allTickets = [...doneTickets, ...tvTickets];
 
-  const totalSprintPoints = doneTickets.reduce(
-    (result, ticket) => {
-      result.estimate = add(result.estimate, ticket.estimate);
-      result.postEstimate = add(result.postEstimate, ticket.postEstimate);
-      return result;
-    },
-    { estimate: 0, postEstimate: 0 }
-  );
+  const ogEstimatePoints = allTickets.reduce((tot, ticket) => add(tot, ticket.estimate), 0);
 
-  const pointsByEpicOrProcess = doneTickets.reduce((result, ticket) => {
+  const postEstimatePoints = allTickets.reduce((tot, ticket) => add(tot, ticket.postEstimate), 0);
+
+  const pointsByEpicOrProcess = allTickets.reduce((result, ticket) => {
     ticket.labels.forEach((label) => {
       if (isEpicOrProcessLabel(label)) {
         result[label] = add(result[label], ticket.postEstimate);
@@ -27,23 +24,23 @@ const printData = async () => {
     return result;
   }, {} as Record<string, number>);
 
-  const ticketsWithoutEstimates = doneTickets
+  const ticketsWithoutEstimates = allTickets
     .filter((ticket) => !ticket.estimate || !ticket.postEstimate)
     .map((ticket) => ticket.number);
 
-  const ticketsWithWrongLabels = doneTickets
+  const ticketsWithWrongLabels = allTickets
     .filter((ticket) => ticket.labels.filter((label) => isEpicOrProcessLabel(label)).length !== 1)
     .map((ticket) => ticket.number);
 
-  const bugTickets = doneTickets
+  const bugTickets = allTickets
     .filter((ticket) => ticket.labels.some((label) => ["prod bug", "bug"].includes(label)))
     .map((ticket) => ticket.number);
 
-  const processPercentage = round(pointsByEpicOrProcess.process / totalSprintPoints.postEstimate);
+  const processPercentage = round((pointsByEpicOrProcess.process / postEstimatePoints) * 100);
 
   console.table({
-    "sprint points": totalSprintPoints.estimate,
-    "sprint post estimate": totalSprintPoints.postEstimate,
+    "sprint OG points": ogEstimatePoints,
+    "sprint post estimate points": postEstimatePoints,
     "process percentage": processPercentage,
     "tickets without estimates": ticketsWithoutEstimates.join(", ") || "-",
     "tickets with wrong labels": ticketsWithWrongLabels.join(", ") || "-",
