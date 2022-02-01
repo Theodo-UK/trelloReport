@@ -4,6 +4,10 @@
   "description": "",
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "ceremony": "ts-node ceremony.ts",
+    "daily": "ts-node daily.ts"
+  },
   "dependencies": {
     "axios": "^0.25.0",
     "dotenv": "^15.0.0",
